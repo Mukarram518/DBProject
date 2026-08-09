@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { apiFetch } from "@/lib/api";
 import type {
   Category,
@@ -50,18 +51,20 @@ export function AdminStoreProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const [users, categories, products, orders, payments, reviews] = await Promise.all([
-        apiFetch<User[]>("/users").catch(() => []),
-        apiFetch<Category[]>("/categories").catch(() => []),
-        apiFetch<Product[]>("/products").catch(() => []),
-        apiFetch<Order[]>("/orders").catch(() => []),
-        apiFetch<Payment[]>("/payments").catch(() => []),
-        apiFetch<Review[]>("/reviews").catch(() => []),
+        apiFetch<User[]>("/users"),
+        apiFetch<Category[]>("/categories"),
+        apiFetch<Product[]>("/products"),
+        apiFetch<Order[]>("/orders"),
+        apiFetch<Payment[]>("/payments"),
+        apiFetch<Review[]>("/reviews"),
       ]);
 
       setData({ users, categories, products, orders, payments, reviews });
     } catch (err: any) {
-      console.error("Database fetch error:", err);
-      setError(err.message || "Failed to load live database data");
+      console.error("Backend database fetch error:", err);
+      const errMsg = err.message || "Could not connect to Railway MySQL Backend API.";
+      setError(errMsg);
+      toast.error("Database Connection Issue: " + errMsg);
     } finally {
       setLoading(false);
     }
