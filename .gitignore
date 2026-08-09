@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.output/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Caches
+.tanstack/
+.lovable/
+.cache/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
