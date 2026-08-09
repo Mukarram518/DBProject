@@ -41,14 +41,13 @@ export const Route = createFileRoute("/users/")({
   component: UsersPage,
 });
 
-const PAGE_SIZE = 10;
-
 function UsersPage() {
-  const { users, deleteUser } = useStore();
+  const { users, deleteUser, loading } = useStore();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("all");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(25);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -61,9 +60,10 @@ function UsersPage() {
     });
   }, [users, search, role, status]);
 
-  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const effectivePageSize = pageSize === -1 ? (filtered.length || 1) : pageSize;
+  const pageCount = Math.ceil(filtered.length / effectivePageSize);
   const currentPage = Math.min(page, Math.max(pageCount, 1));
-  const rows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const rows = filtered.slice((currentPage - 1) * effectivePageSize, currentPage * effectivePageSize);
 
   const reset = (fn: (value: string) => void) => (value: string) => {
     fn(value);
@@ -74,7 +74,7 @@ function UsersPage() {
     <>
       <PageHeader
         title="Users"
-        description={`${users.length} accounts in the system.`}
+        description={`${users.length} accounts loaded directly from Railway database.`}
         action={
           <Button asChild>
             <Link to="/users/new">
@@ -92,24 +92,44 @@ function UsersPage() {
           placeholder="Search name or email..."
         >
           <Select value={role} onValueChange={reset(setRole)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-36">
               <SelectValue placeholder="Role" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All roles</SelectItem>
               <SelectItem value="Admin">Admin</SelectItem>
               <SelectItem value="Manager">Manager</SelectItem>
-              <SelectItem value="User">User</SelectItem>
+              <SelectItem value="User">User / Customer</SelectItem>
             </SelectContent>
           </Select>
+
           <Select value={status} onValueChange={reset(setStatus)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-36">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All status</SelectItem>
               <SelectItem value="Active">Active</SelectItem>
               <SelectItem value="Inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={String(pageSize)}
+            onValueChange={(val) => {
+              setPageSize(Number(val));
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Per page" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 per page</SelectItem>
+              <SelectItem value="25">25 per page</SelectItem>
+              <SelectItem value="50">50 per page</SelectItem>
+              <SelectItem value="100">100 per page</SelectItem>
+              <SelectItem value="-1">Show All ({filtered.length})</SelectItem>
             </SelectContent>
           </Select>
         </TableToolbar>
@@ -134,7 +154,7 @@ function UsersPage() {
                 </TableCell>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                <TableCell className="text-muted-foreground">{user.phone}</TableCell>
+                <TableCell className="text-muted-foreground">{user.phone || "-"}</TableCell>
                 <TableCell>
                   <StatusBadge value={user.role} />
                 </TableCell>
@@ -166,7 +186,7 @@ function UsersPage() {
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
-                  No users match your filters.
+                  {loading ? "Loading users from Railway MySQL database..." : "No users match your filters."}
                 </TableCell>
               </TableRow>
             ) : null}
@@ -177,7 +197,7 @@ function UsersPage() {
           page={currentPage}
           pageCount={pageCount}
           total={filtered.length}
-          pageSize={PAGE_SIZE}
+          pageSize={effectivePageSize}
           onPage={setPage}
         />
       </div>
