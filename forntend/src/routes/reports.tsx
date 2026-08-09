@@ -56,7 +56,7 @@ function ReportsPage() {
   const scoped = useMemo(() => {
     const days = RANGES[range]?.days ?? null;
     if (!days) return orders;
-    const cutoff = new Date(Date.UTC(2026, 7, 9) - days * 86400000).toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
     return orders.filter((o) => o.date >= cutoff);
   }, [orders, range]);
 
@@ -94,59 +94,59 @@ function ReportsPage() {
             <h3 className="text-sm font-semibold tracking-wide uppercase">Top Selling Products</h3>
           </header>
           <ul className="divide-y divide-border">
-            {top.map(({ product, quantity }) => (
-              <li key={product.id} className="px-5 py-3">
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="font-medium">{product.name}</span>
-                  <span className="text-muted-foreground">{quantity} sold</span>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-accent"
-                    style={{ width: `${Math.max(6, (quantity / maxSold) * 100)}%` }}
-                  />
-                </div>
-              </li>
-            ))}
+            {top.length === 0 ? (
+              <li className="px-5 py-6 text-center text-sm text-muted-foreground">No product sales found in database for selected period.</li>
+            ) : (
+              top.map(({ product, quantity }) => (
+                <li key={product.id} className="px-5 py-3">
+                  <div className="flex items-center justify-between gap-4 text-sm">
+                    <span className="font-medium">{product.name}</span>
+                    <span className="text-muted-foreground">{quantity} sold</span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-accent"
+                      style={{ width: `${Math.max(6, (quantity / maxSold) * 100)}%` }}
+                    />
+                  </div>
+                </li>
+              ))
+            )}
           </ul>
         </section>
 
-        <section className="card-surface">
-          <header className="border-b border-border px-5 py-4">
-            <h3 className="text-sm font-semibold tracking-wide uppercase">Sales Summary</h3>
-          </header>
-          <dl className="divide-y divide-border">
-            <div className="flex items-center justify-between px-5 py-4">
-              <dt className="text-sm text-muted-foreground">Total Sales</dt>
-              <dd className="font-display text-lg font-semibold">{currency(sales)}</dd>
-            </div>
-            <div className="flex items-center justify-between px-5 py-4">
-              <dt className="text-sm text-muted-foreground">Total Orders</dt>
-              <dd className="font-display text-lg font-semibold">{scoped.length}</dd>
-            </div>
-            <div className="flex items-center justify-between px-5 py-4">
-              <dt className="text-sm text-muted-foreground">Avg Order Value</dt>
-              <dd className="font-display text-lg font-semibold">{currencyPrecise(avgOrder)}</dd>
-            </div>
-            <div className="flex items-center justify-between px-5 py-4">
-              <dt className="text-sm text-muted-foreground">Cancelled Orders</dt>
-              <dd className="font-display text-lg font-semibold">
-                {scoped.length - active.length}
-              </dd>
-            </div>
-          </dl>
-        </section>
+        <div className="space-y-4">
+          <section className="card-surface p-5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Revenue ({RANGES[range]?.label})
+            </h4>
+            <p className="font-display mt-2 text-3xl font-bold tracking-tight">{currency(sales)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Across {active.length} active orders
+            </p>
+          </section>
+
+          <section className="card-surface p-5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Average Order Value
+            </h4>
+            <p className="font-display mt-2 text-3xl font-bold tracking-tight">
+              {currencyPrecise(avgOrder)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Per order average</p>
+          </section>
+        </div>
       </div>
 
       <section className="card-surface mt-4">
         <header className="border-b border-border px-5 py-4">
-          <h3 className="text-sm font-semibold tracking-wide uppercase">Monthly Sales</h3>
+          <h3 className="text-sm font-semibold tracking-wide uppercase">Monthly Revenue Trend</h3>
         </header>
-        <div className="h-80 p-4">
+        <div className="h-72 p-4">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ left: 4, right: 8, top: 8 }}>
               <defs>
-                <linearGradient id="reportFill" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="reportsSalesFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
                   <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0.02} />
                 </linearGradient>
@@ -179,7 +179,7 @@ function ReportsPage() {
                 dataKey="sales"
                 stroke="var(--color-chart-1)"
                 strokeWidth={2}
-                fill="url(#reportFill)"
+                fill="url(#reportsSalesFill)"
               />
             </AreaChart>
           </ResponsiveContainer>

@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { initialDataset } from "./generate";
 import { apiFetch } from "@/lib/api";
 import type {
   Category,
@@ -30,10 +29,19 @@ interface StoreValue extends Dataset {
   deleteReview: (id: number) => Promise<void>;
 }
 
+const emptyDataset: Dataset = {
+  users: [],
+  categories: [],
+  products: [],
+  orders: [],
+  payments: [],
+  reviews: [],
+};
+
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function AdminStoreProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<Dataset>(initialDataset);
+  const [data, setData] = useState<Dataset>(emptyDataset);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,18 +50,18 @@ export function AdminStoreProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const [users, categories, products, orders, payments, reviews] = await Promise.all([
-        apiFetch<User[]>("/users").catch(() => initialDataset.users),
-        apiFetch<Category[]>("/categories").catch(() => initialDataset.categories),
-        apiFetch<Product[]>("/products").catch(() => initialDataset.products),
-        apiFetch<Order[]>("/orders").catch(() => initialDataset.orders),
-        apiFetch<Payment[]>("/payments").catch(() => initialDataset.payments),
-        apiFetch<Review[]>("/reviews").catch(() => initialDataset.reviews),
+        apiFetch<User[]>("/users").catch(() => []),
+        apiFetch<Category[]>("/categories").catch(() => []),
+        apiFetch<Product[]>("/products").catch(() => []),
+        apiFetch<Order[]>("/orders").catch(() => []),
+        apiFetch<Payment[]>("/payments").catch(() => []),
+        apiFetch<Review[]>("/reviews").catch(() => []),
       ]);
 
       setData({ users, categories, products, orders, payments, reviews });
     } catch (err: any) {
-      console.warn("Failed to fetch live database data, falling back to mock dataset:", err);
-      setError(err.message || "Failed to load database content");
+      console.error("Database fetch error:", err);
+      setError(err.message || "Failed to load live database data");
     } finally {
       setLoading(false);
     }
@@ -65,185 +73,104 @@ export function AdminStoreProvider({ children }: { children: ReactNode }) {
 
   const addUser = useCallback(
     async (user: Omit<User, "id" | "createdAt"> & { password?: string }) => {
-      try {
-        const created = await apiFetch<User>("/users", {
-          method: "POST",
-          body: JSON.stringify(user),
-        });
-        setData((prev) => ({ ...prev, users: [created, ...prev.users] }));
-        return created;
-      } catch (err) {
-        console.error("API addUser failed, falling back locally:", err);
-        const fallback: User = {
-          ...user,
-          id: Date.now(),
-          createdAt: new Date().toISOString().slice(0, 10),
-        };
-        setData((prev) => ({ ...prev, users: [fallback, ...prev.users] }));
-        return fallback;
-      }
+      const created = await apiFetch<User>("/users", {
+        method: "POST",
+        body: JSON.stringify(user),
+      });
+      setData((prev) => ({ ...prev, users: [created, ...prev.users] }));
+      return created;
     },
     []
   );
 
   const updateUser = useCallback(async (id: number, patch: Partial<Omit<User, "id">>) => {
-    try {
-      const updated = await apiFetch<User>(`/users/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(patch),
-      });
-      setData((prev) => ({
-        ...prev,
-        users: prev.users.map((u) => (u.id === id ? { ...u, ...updated } : u)),
-      }));
-    } catch (err) {
-      console.error("API updateUser failed, updating locally:", err);
-      setData((prev) => ({
-        ...prev,
-        users: prev.users.map((u) => (u.id === id ? { ...u, ...patch } : u)),
-      }));
-    }
+    const updated = await apiFetch<User>(`/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    });
+    setData((prev) => ({
+      ...prev,
+      users: prev.users.map((u) => (u.id === id ? { ...u, ...updated } : u)),
+    }));
   }, []);
 
   const deleteUser = useCallback(async (id: number) => {
-    try {
-      await apiFetch(`/users/${id}`, { method: "DELETE" });
-    } catch (err) {
-      console.error("API deleteUser error:", err);
-    }
+    await apiFetch(`/users/${id}`, { method: "DELETE" });
     setData((prev) => ({ ...prev, users: prev.users.filter((u) => u.id !== id) }));
   }, []);
 
   const addCategory = useCallback(async (category: Omit<Category, "id">) => {
-    try {
-      const created = await apiFetch<Category>("/categories", {
-        method: "POST",
-        body: JSON.stringify(category),
-      });
-      setData((prev) => ({ ...prev, categories: [created, ...prev.categories] }));
-      return created;
-    } catch (err) {
-      console.error("API addCategory failed, falling back locally:", err);
-      const fallback: Category = { ...category, id: Date.now() };
-      setData((prev) => ({ ...prev, categories: [fallback, ...prev.categories] }));
-      return fallback;
-    }
+    const created = await apiFetch<Category>("/categories", {
+      method: "POST",
+      body: JSON.stringify(category),
+    });
+    setData((prev) => ({ ...prev, categories: [created, ...prev.categories] }));
+    return created;
   }, []);
 
   const updateCategory = useCallback(async (id: number, patch: Partial<Omit<Category, "id">>) => {
-    try {
-      const updated = await apiFetch<Category>(`/categories/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(patch),
-      });
-      setData((prev) => ({
-        ...prev,
-        categories: prev.categories.map((c) => (c.id === id ? { ...c, ...updated } : c)),
-      }));
-    } catch (err) {
-      console.error("API updateCategory error:", err);
-      setData((prev) => ({
-        ...prev,
-        categories: prev.categories.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-      }));
-    }
+    const updated = await apiFetch<Category>(`/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    });
+    setData((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) => (c.id === id ? { ...c, ...updated } : c)),
+    }));
   }, []);
 
   const deleteCategory = useCallback(async (id: number) => {
-    try {
-      await apiFetch(`/categories/${id}`, { method: "DELETE" });
-    } catch (err) {
-      console.error("API deleteCategory error:", err);
-    }
+    await apiFetch(`/categories/${id}`, { method: "DELETE" });
     setData((prev) => ({ ...prev, categories: prev.categories.filter((c) => c.id !== id) }));
   }, []);
 
   const addProduct = useCallback(async (product: Omit<Product, "id">) => {
-    try {
-      const created = await apiFetch<Product>("/products", {
-        method: "POST",
-        body: JSON.stringify(product),
-      });
-      setData((prev) => ({ ...prev, products: [created, ...prev.products] }));
-      return created;
-    } catch (err) {
-      console.error("API addProduct failed, falling back locally:", err);
-      const fallback: Product = { ...product, id: Date.now() };
-      setData((prev) => ({ ...prev, products: [fallback, ...prev.products] }));
-      return fallback;
-    }
+    const created = await apiFetch<Product>("/products", {
+      method: "POST",
+      body: JSON.stringify(product),
+    });
+    setData((prev) => ({ ...prev, products: [created, ...prev.products] }));
+    return created;
   }, []);
 
   const updateProduct = useCallback(async (id: number, patch: Partial<Omit<Product, "id">>) => {
-    try {
-      const updated = await apiFetch<Product>(`/products/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(patch),
-      });
-      setData((prev) => ({
-        ...prev,
-        products: prev.products.map((p) => (p.id === id ? { ...p, ...updated } : p)),
-      }));
-    } catch (err) {
-      console.error("API updateProduct error:", err);
-      setData((prev) => ({
-        ...prev,
-        products: prev.products.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-      }));
-    }
+    const updated = await apiFetch<Product>(`/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    });
+    setData((prev) => ({
+      ...prev,
+      products: prev.products.map((p) => (p.id === id ? { ...p, ...updated } : p)),
+    }));
   }, []);
 
   const deleteProduct = useCallback(async (id: number) => {
-    try {
-      await apiFetch(`/products/${id}`, { method: "DELETE" });
-    } catch (err) {
-      console.error("API deleteProduct error:", err);
-    }
+    await apiFetch(`/products/${id}`, { method: "DELETE" });
     setData((prev) => ({ ...prev, products: prev.products.filter((p) => p.id !== id) }));
   }, []);
 
   const addOrder = useCallback(async (order: Omit<Order, "id">, paymentStatus: PaymentStatus) => {
-    try {
-      const created = await apiFetch<Order>("/orders", {
-        method: "POST",
-        body: JSON.stringify({ ...order, paymentStatus }),
-      });
-      // Refresh list to update orders and payments
-      fetchAllData();
-      return created;
-    } catch (err) {
-      console.error("API addOrder failed, falling back locally:", err);
-      const fallback: Order = { ...order, id: Date.now() };
-      setData((prev) => ({ ...prev, orders: [fallback, ...prev.orders] }));
-      return fallback;
-    }
+    const created = await apiFetch<Order>("/orders", {
+      method: "POST",
+      body: JSON.stringify({ ...order, paymentStatus }),
+    });
+    await fetchAllData();
+    return created;
   }, [fetchAllData]);
 
   const updateOrderStatus = useCallback(async (id: number, status: Order["status"]) => {
-    try {
-      await apiFetch(`/orders/${id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      });
-      setData((prev) => ({
-        ...prev,
-        orders: prev.orders.map((o) => (o.id === id ? { ...o, status } : o)),
-      }));
-    } catch (err) {
-      console.error("API updateOrderStatus error:", err);
-      setData((prev) => ({
-        ...prev,
-        orders: prev.orders.map((o) => (o.id === id ? { ...o, status } : o)),
-      }));
-    }
+    await apiFetch(`/orders/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    setData((prev) => ({
+      ...prev,
+      orders: prev.orders.map((o) => (o.id === id ? { ...o, status } : o)),
+    }));
   }, []);
 
   const deleteReview = useCallback(async (id: number) => {
-    try {
-      await apiFetch(`/reviews/${id}`, { method: "DELETE" });
-    } catch (err) {
-      console.error("API deleteReview error:", err);
-    }
+    await apiFetch(`/reviews/${id}`, { method: "DELETE" });
     setData((prev) => ({ ...prev, reviews: prev.reviews.filter((r) => r.id !== id) }));
   }, []);
 
