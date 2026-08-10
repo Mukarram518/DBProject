@@ -11,12 +11,20 @@ function createMysqlPool(): mysql.Pool {
   if (connectionString) {
     try {
       const parsedUrl = new URL(connectionString);
+      const host = parsedUrl.hostname && parsedUrl.hostname !== "localhost" ? parsedUrl.hostname : env.DB_HOST;
+      const port = parsedUrl.port ? parseInt(parsedUrl.port, 10) : env.DB_PORT;
+      const user = parsedUrl.username ? decodeURIComponent(parsedUrl.username) : env.DB_USER;
+      const password = parsedUrl.password ? decodeURIComponent(parsedUrl.password) : env.DB_PASSWORD;
+      const database = parsedUrl.pathname && parsedUrl.pathname !== "/" ? parsedUrl.pathname.replace(/^\//, "") : env.DB_NAME;
+
+      console.log(`Connecting to MySQL database at ${host}:${port}/${database} as user ${user}`);
+
       return mysql.createPool({
-        host: parsedUrl.hostname,
-        port: parseInt(parsedUrl.port || "3306", 10),
-        user: decodeURIComponent(parsedUrl.username || "root"),
-        password: decodeURIComponent(parsedUrl.password || ""),
-        database: parsedUrl.pathname.replace(/^\//, "") || "railway",
+        host,
+        port,
+        user,
+        password,
+        database,
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
@@ -25,7 +33,7 @@ function createMysqlPool(): mysql.Pool {
         ssl: { rejectUnauthorized: false },
       });
     } catch (e) {
-      console.warn("Could not parse DATABASE_URL string, using direct string pool creation:", e);
+      console.warn("Could not parse connection string, using direct string pool creation:", e);
       return mysql.createPool(connectionString);
     }
   }
