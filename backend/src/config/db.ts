@@ -4,15 +4,7 @@ import { env } from "./env";
 let pool: mysql.Pool;
 
 if (env.DATABASE_URL) {
-  pool = mysql.createPool({
-    uri: env.DATABASE_URL,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    connectTimeout: 20000,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
-  });
+  pool = mysql.createPool(env.DATABASE_URL);
 } else {
   pool = mysql.createPool({
     host: env.DB_HOST,
