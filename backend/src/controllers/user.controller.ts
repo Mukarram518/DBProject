@@ -40,9 +40,9 @@ export async function getUsers(req: Request, res: Response) {
     }));
 
     return res.json({ success: true, data: formattedRows });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Get users error:", error);
-    return res.status(500).json({ success: false, message: "Error fetching users." });
+    return res.status(500).json({ success: false, message: error?.message || "Error fetching users." });
   }
 }
 
