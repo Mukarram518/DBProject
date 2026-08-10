@@ -18,7 +18,24 @@ import dashboardRoutes from "./routes/dashboard.routes";
 const app = express();
 
 // Middleware
-app.use(cors({ origin: env.FRONTEND_URL || "*", credentials: true }));
+const allowedOrigins = [
+  env.FRONTEND_URL.replace(/\/+$/, ""),
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || env.FRONTEND_URL === "*" || allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
