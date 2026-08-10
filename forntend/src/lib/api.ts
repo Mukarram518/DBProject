@@ -1,4 +1,4 @@
-let rawApiUrl = import.meta.env["VITE_API_URL"] || "";
+let rawApiUrl = (import.meta.env["VITE_API_URL"] || "").trim();
 
 // Guard against setting VITE_API_URL to a mysql:// database URL by mistake
 if (rawApiUrl.startsWith("mysql://") || rawApiUrl.startsWith("mysqls://")) {
@@ -6,7 +6,26 @@ if (rawApiUrl.startsWith("mysql://") || rawApiUrl.startsWith("mysqls://")) {
   rawApiUrl = "";
 }
 
-const API_BASE = rawApiUrl.replace(/\/+$/, "") || "http://localhost:5000/api";
+function getNormalizedApiBase(url: string): string {
+  if (!url) return "http://localhost:5000/api";
+  
+  // Clean trailing slashes
+  let cleanUrl = url.replace(/\/+$/, "");
+
+  // Add https:// if no protocol is specified (unless localhost)
+  if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+    cleanUrl = `https://${cleanUrl}`;
+  }
+
+  // Ensure /api suffix is present
+  if (!cleanUrl.endsWith("/api")) {
+    cleanUrl = `${cleanUrl}/api`;
+  }
+
+  return cleanUrl;
+}
+
+const API_BASE = getNormalizedApiBase(rawApiUrl);
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("token");
