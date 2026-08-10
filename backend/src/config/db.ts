@@ -29,15 +29,16 @@ if (env.DATABASE_URL) {
   });
 }
 
-export async function testConnection(): Promise<boolean> {
+export async function testConnection(): Promise<{ connected: boolean; error?: string }> {
   try {
     const connection = await pool.getConnection();
     await connection.ping();
     connection.release();
     console.log("Successfully connected to MySQL database on Railway/Host.");
-    return true;
-  } catch (error) {
-    return false;
+    return { connected: true };
+  } catch (error: any) {
+    console.error("MySQL connection error:", error?.message || error);
+    return { connected: false, error: error?.message || String(error) };
   }
 }
 

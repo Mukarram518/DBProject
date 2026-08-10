@@ -24,11 +24,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health Check API
 app.get("/api/health", async (req, res) => {
-  const dbConnected = await testConnection();
+  const dbStatus = await testConnection();
   res.json({
     status: "ok",
     environment: env.NODE_ENV,
-    database: dbConnected ? "connected" : "disconnected",
+    database: dbStatus.connected ? "connected" : "disconnected",
+    ...(dbStatus.error ? { dbError: dbStatus.error } : {}),
     timestamp: new Date().toISOString(),
   });
 });
@@ -49,11 +50,11 @@ app.use(errorHandler);
 
 // Bootstrap
 async function startServer() {
-  const isDbReady = await testConnection();
-  if (isDbReady) {
+  const dbStatus = await testConnection();
+  if (dbStatus.connected) {
     await initializeDatabaseSchema();
   } else {
-    console.warn("Database connection could not be established at startup. Waiting for environment variables...");
+    console.warn("Database connection could not be established at startup. Error:", dbStatus.error);
   }
 
   app.listen(env.PORT, () => {

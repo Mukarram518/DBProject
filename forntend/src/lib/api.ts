@@ -26,9 +26,23 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
     headers,
   });
 
-  const json = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  const text = await response.text();
+
+  let json: any;
+  try {
+    json = JSON.parse(text);
+  } catch (err) {
+    if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+      throw new Error(
+        `API returned HTML instead of JSON. Ensure VITE_API_URL is set in Vercel settings to your Railway backend URL (e.g., https://your-backend.up.railway.app/api). Current API_BASE: "${API_BASE}"`
+      );
+    }
+    throw new Error(`Failed to parse API response: ${text.slice(0, 100)}`);
+  }
+
   if (!response.ok || json.success === false) {
-    throw new Error(json.message || "An API error occurred");
+    throw new Error(json.message || `API error (${response.status})`);
   }
 
   return json.data !== undefined ? json.data : json;
