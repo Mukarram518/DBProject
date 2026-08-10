@@ -6,6 +6,8 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+RUN chmod -R +x node_modules/.bin
+
 RUN npm run build
 
 FROM node:20-alpine AS runner

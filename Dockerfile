@@ -1,15 +1,19 @@
 # Multi-stage Dockerfile for Monorepo Backend Build on Railway
 FROM node:20-alpine AS builder
 
-WORKDIR /app
-
-# Copy backend package files
-COPY backend/package*.json ./backend/
 WORKDIR /app/backend
+
+# Copy backend package files first for caching
+COPY backend/package*.json ./
 RUN npm install
 
-# Copy backend source code and build
+# Copy backend source code
 COPY backend/ ./
+
+# Ensure binary execution permissions for node_modules/.bin
+RUN chmod -R +x node_modules/.bin
+
+# Build TypeScript to JavaScript
 RUN npm run build
 
 # Production stage
@@ -19,7 +23,7 @@ WORKDIR /app/backend
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/backend/package*.json ./
+COPY backend/package*.json ./
 RUN npm install --only=production
 
 COPY --from=builder /app/backend/dist ./dist

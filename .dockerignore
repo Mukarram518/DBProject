@@ -1,0 +1,12 @@
+node_modules
+dist
+.output
+.git
+.env
+.env.local
+backend/node_modules
+backend/dist
+forntend/node_modules
+forntend/dist
+forntend/.output
+npm-debug.log
